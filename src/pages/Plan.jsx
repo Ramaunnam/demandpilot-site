@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { HIST, AHEAD, wk, dayLabel } from '../data.js'
 import { sum, fmtT, fmtQty, fmtINR, daysText } from '../engine.js'
-import { useApp, Head, Card, Pill, MatPill } from '../ui.jsx'
+import { useApp, Head, Card, Pill, MatPill, useViewState } from '../ui.jsx'
 
 export default function Plan() {
   const { plan, go } = useApp()
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useViewState('plan.step', 1)
   const totalMake = new Array(AHEAD).fill(0).map((_, w) => sum(plan.products.map(p => p.make[w])))
   const buys = plan.buys.filter(b => b.kind === 'buy')
   const short = plan.materials.filter(m => m.planned.length)

@@ -63,7 +63,7 @@ export default function Product({ id }) {
 
   return (
     <>
-      <Head crumb={{ page: 'products', label: 'Products' }} title={p.name} sub={p.use} right={<><Pill u={p.urgency} /><button className="btn sm" onClick={() => go('simulate', p.id)}>What if</button></>} />
+      <Head backLink title={p.name} sub={p.use} right={<><Pill u={p.urgency} /><button className="btn sm" onClick={() => go('simulate', p.id)}>What if</button></>} />
       {decisions.length > 0 && <div className="dlist">{decisions.map(d => <DecisionRow key={d.id} d={d} />)}</div>}
       <div className="card"><div className="card-b facts">
         <Fact k="Sales a week, next 4" v={fmtT(p.weekly)} s={`last 4 weeks: ${fmtT(p.recent4)}`} />

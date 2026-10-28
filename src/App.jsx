@@ -78,7 +78,6 @@ export default function App() {
   const [hi, setHi] = useState(0)
   const [showSettings, setShowSettings] = useState(false)
   const [theme, setTheme] = useState(readTheme)
-  const [canBack, setCanBack] = useState(false)
   const timer = useRef(null)
   const searchBox = useRef(null)
 
@@ -89,18 +88,19 @@ export default function App() {
   // The depth of our own history is carried on each entry, so Back can be shown only
   // when there is somewhere to go back to, and stays right through the browser's own
   // Back and Forward buttons.
-  const depth = useRef(0)
+  // Every history entry carries the screen it came from. That is the app's own history
+  // list, and because it rides on the browser's own entries, the browser's Back button,
+  // the mouse's back button and the one in the top bar all do the same thing.
+  const [prev, setPrev] = useState(null)
+  const routeRef = useRef(route)
+  useEffect(() => { routeRef.current = route })
+
   useEffect(() => {
     try {
-      if (window.history.state?.dp == null) window.history.replaceState({ dp: 0 }, '')
-      else depth.current = window.history.state.dp
+      if (window.history.state?.dp == null) window.history.replaceState({ dp: 0, from: null }, '')
+      else setPrev(window.history.state.from ?? null)
     } catch { /* sandbox */ }
-    setCanBack(depth.current > 0)
-    const onPop = (ev) => {
-      depth.current = ev.state?.dp ?? 0
-      setCanBack(depth.current > 0)
-      setRoute(readHash())
-    }
+    const onPop = (ev) => { setPrev(ev.state?.from ?? null); setRoute(readHash()) }
     const onHash = () => setRoute(readHash())
     window.addEventListener('popstate', onPop)
     window.addEventListener('hashchange', onHash)
@@ -108,17 +108,32 @@ export default function App() {
   }, [])
 
   const go = useCallback((page, id = null) => {
+    const from = { page: routeRef.current.page, id: routeRef.current.id ?? null }
+    if (from.page === page && from.id === (id ?? null)) return      // already on it
     setRoute({ page, id })
+    setPrev(from)
     try {
-      depth.current += 1
-      window.history.pushState({ dp: depth.current }, '', `#${page}${id ? '/' + encodeURIComponent(id) : ''}`)
-      setCanBack(true)
+      const dp = (window.history.state?.dp ?? 0) + 1
+      window.history.pushState({ dp, from }, '', `#${page}${id ? '/' + encodeURIComponent(id) : ''}`)
     } catch { /* sandbox */ }
     try { window.scrollTo({ top: 0 }) } catch { /* ignore */ }
     setQ(''); setHi(0)
   }, [])
 
-  const back = useCallback(() => { try { window.history.back() } catch { /* sandbox */ } }, [])
+  // With no previous screen, Back goes up to the page this one belongs under.
+  const parentOf = (page) => PARENT[page] ?? (page === 'command' ? null : 'command')
+  const backTo = prev ?? (parentOf(route.page) ? { page: parentOf(route.page), id: null } : null)
+  const canBack = !!backTo
+  const backLabel = !backTo ? null
+    : backTo.page === 'product' ? (plan.prodById[backTo.id]?.name ?? 'Products')
+      : backTo.page === 'material' ? (plan.matById[backTo.id]?.name ?? 'Materials & stock')
+        : (TITLES[backTo.page] ?? 'Command Centre')
+
+  const back = useCallback(() => {
+    if (prev) { try { window.history.back(); return } catch { /* sandbox */ } }
+    const p = parentOf(routeRef.current.page)
+    if (p) go(p)
+  }, [prev, go])
 
   useEffect(() => { document.title = `${TITLES[route.page] ?? 'DemandPilot'} · DemandPilot` }, [route.page])
 
@@ -243,7 +258,7 @@ export default function App() {
 
   const Page = PAGES[route.page]
   const active = PARENT[route.page] ?? route.page
-  const ctx = useMemo(() => ({ data, plan, state, go, back, canBack, act, route, notify, openSettings: () => setShowSettings(true) }), [plan, state, go, back, canBack, act, route, notify])
+  const ctx = useMemo(() => ({ data, plan, state, go, back, canBack, backLabel, act, route, notify, openSettings: () => setShowSettings(true) }), [plan, state, go, back, canBack, backLabel, act, route, notify])
 
   return (
     <Ctx.Provider value={ctx}>
@@ -275,12 +290,13 @@ export default function App() {
         </aside>
         <div className="main">
           <header className="top">
-            <button className="btn ghost back-btn" onClick={back} disabled={!canBack}
-              title={canBack ? 'Back to the previous screen' : 'Nothing to go back to yet'}
-              aria-label="Back to the previous screen">
-              <Icon name="back" />
-              <span className="back-word">Back</span>
-            </button>
+            {canBack && (
+              <button className="btn ghost back-btn" onClick={back}
+                title={`Back to ${backLabel}`} aria-label={`Back to ${backLabel}`}>
+                <Icon name="back" />
+                <span className="back-word">Back</span>
+              </button>
+            )}
             <span className="site">{SITE.name}<small>{SITE.short} · {wkYear(HIST)} week</small></span>
             <span className="badge-mock" title="Every number here is worked out from generated sample data">Mock data</span>
             <div className="top-r">

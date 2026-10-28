@@ -499,3 +499,7 @@ input[type="range"].slider { width: 100%; accent-color: var(--navy); height: 22p
 .back-btn:disabled { opacity: .35; }
 .back-word { font-size: 13px; }
 @media (max-width: 860px) { .back-word { display: none; } .back-btn { padding: 0 8px; } }
+
+/* "← Back to Decisions" above a detail page's title */
+.backlink { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 0 0 2px; font-size: 12.5px; font-weight: 700; color: var(--navy); }
+.backlink:hover { text-decoration: underline; }

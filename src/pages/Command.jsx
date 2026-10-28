@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { HIST, AHEAD, wk, wkRange } from '../data.js'
 import { weekView, fmtT, fmtPct, fmtINR } from '../engine.js'
-import { useApp, Tile, Card, Info, Icon, DecisionRow, Pill, deadlineText } from '../ui.jsx'
+import { useApp, Tile, Card, Info, Icon, DecisionRow, Pill, deadlineText, useViewState } from '../ui.jsx'
 import { TimeChart } from '../charts.jsx'
 
 export default function Command() {
   const { plan, go, data } = useApp()
-  const [k, setK] = useState(0)
+  const [k, setK] = useViewState('command.week', 0)
   const v = weekView(plan, k)
   const kp = plan.kpi
   const top = plan.decisions[0]

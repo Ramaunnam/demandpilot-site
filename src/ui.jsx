@@ -96,6 +96,23 @@ export function Tile({ k, v, small, d, e, tone, onClick, light, title }) {
   )
 }
 
+// A screen is rebuilt from scratch each time it is opened, so the choices a person made
+// on it — a tab, a filter, the week they were looking at — are kept here and put back
+// when they come back to it.
+const viewMemory = new Map()
+export function useViewState(key, initial) {
+  const [v, setV] = useState(() => (viewMemory.has(key) ? viewMemory.get(key) : initial))
+  useEffect(() => { viewMemory.set(key, v) }, [key, v])
+  return [v, setV]
+}
+
+// "← Back to Decisions", above the title of a screen that was opened from elsewhere.
+export function BackLink() {
+  const { back, canBack, backLabel } = useApp()
+  if (!canBack) return null
+  return <button className="backlink" onClick={back}><Icon name="back" size={13} />Back to {backLabel}</button>
+}
+
 export const Pill = ({ u, children }) => <span className={`pill ${u}`}>{children ?? (u === 'OK' ? 'All good' : u)}</span>
 
 // A material's status. Every screen that shows one uses this, so the same material
@@ -122,12 +139,13 @@ export function Seg({ value, options, onChange, label }) {
   )
 }
 
-export function Head({ title, sub, crumb, right }) {
+export function Head({ title, sub, crumb, right, backLink }) {
   const { go } = useApp()
   return (
     <div className="ph">
       <div>
-        {crumb && <div className="crumb"><button onClick={() => go(crumb.page)}>{crumb.label}</button><span>›</span></div>}
+        {backLink && <BackLink />}
+        {crumb && !backLink && <div className="crumb"><button onClick={() => go(crumb.page)}>{crumb.label}</button><span>›</span></div>}
         <h1>{title}</h1>
         {sub && <p>{sub}</p>}
       </div>

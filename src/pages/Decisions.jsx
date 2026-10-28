@@ -1,14 +1,14 @@
 import React, { useState } from 'react'
 import { fmtINR, sum } from '../engine.js'
-import { useApp, Head, Tile, Seg, DecisionRow, Empty, Icon } from '../ui.jsx'
+import { useApp, Head, Tile, Seg, DecisionRow, Empty, Icon, useViewState } from '../ui.jsx'
 
 const TYPES = ['All', 'Order', 'Make more', 'Sales change', 'Factory too busy', 'Buy less']
 
 export default function Decisions() {
   const { plan, state, go } = useApp()
-  const [urg, setUrg] = useState('All')
-  const [type, setType] = useState('All')
-  const [sort, setSort] = useState('deadline')
+  const [urg, setUrg] = useViewState('decisions.urgency', 'All')
+  const [type, setType] = useViewState('decisions.type', 'All')
+  const [sort, setSort] = useViewState('decisions.sort', 'deadline')
   const all = plan.decisions
   let list = all.filter(d => (urg === 'All' || d.urgency === urg) && (type === 'All' || d.type === type))
   if (sort === 'money') list = [...list].sort((a, b) => b.money - a.money)

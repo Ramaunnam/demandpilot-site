@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react'
 import { HIST, AHEAD, SIGNALS, wk } from '../data.js'
 import { sum, mean, fmtT, fmtPct } from '../engine.js'
-import { useApp, Head, Tile, Card, Seg, Info, Pill } from '../ui.jsx'
+import { useApp, Head, Tile, Card, Seg, Info, Pill, useViewState } from '../ui.jsx'
 import { TimeChart, Legend } from '../charts.jsx'
 
 export default function Forecast() {
   const { plan, go } = useApp()
   const families = [...new Set(plan.products.map(p => p.family))]
-  const [fam, setFam] = useState('All')
-  const [pid, setPid] = useState('All')
-  const [range, setRange] = useState(52)
+  const [fam, setFam] = useViewState('forecast.group', 'All')
+  const [pid, setPid] = useViewState('forecast.product', 'All')
+  const [range, setRange] = useViewState('forecast.range', 52)
   const inFam = plan.products.filter(p => fam === 'All' || p.family === fam)
   const sel = pid === 'All' ? inFam : inFam.filter(p => p.id === pid)
   const label = pid !== 'All' ? sel[0]?.name : fam !== 'All' ? `${fam} (${sel.length} products)` : `All products (${sel.length})`

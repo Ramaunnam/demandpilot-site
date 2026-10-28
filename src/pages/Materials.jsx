@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { fmtQty, fmtINR, fmtPct, daysText } from '../engine.js'
 import { dayLabel } from '../data.js'
-import { useApp, Head, Seg, MatPill, Card, Tile } from '../ui.jsx'
+import { useApp, Head, Seg, MatPill, Card, Tile, useViewState } from '../ui.jsx'
 
 export default function Materials() {
   const { plan, go } = useApp()
-  const [urg, setUrg] = useState('All')
+  const [urg, setUrg] = useViewState('materials.urgency', 'All')
   const M = plan.materials
   const cnt = (u) => M.filter(m => m.urgency === u).length
   const list = M.filter(m => urg === 'All' || m.urgency === urg)

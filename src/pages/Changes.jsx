@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { HIST, SIGNALS, wk } from '../data.js'
 import { sum, fmtT, fmtPct } from '../engine.js'
-import { useApp, Head, Card, Seg, Pill, Empty } from '../ui.jsx'
+import { useApp, Head, Card, Seg, Pill, Empty, useViewState } from '../ui.jsx'
 import { TimeChart } from '../charts.jsx'
 
 const STATUS = { open: 'Waiting for decision', real: 'Accepted as real', oneoff: 'Treated as one-off', check: 'Checking with sales' }
@@ -59,14 +59,14 @@ function ChangeCard({ c, open, onToggle }) {
 
 export default function Changes({ id }) {
   const { plan, act, go } = useApp()
-  const [tab, setTab] = useState('sales')
+  const [tab, setTab] = useViewState('changes.tab', 'sales')
   const [openId, setOpenId] = useState(id ?? plan.changes[0]?.id)
   const seenInSales = (s) => plan.changes.some(c => c.signal?.id === s.id || c.signals?.some(x => x.id === s.id))
   const market = [...SIGNALS].sort((a, b) => b.week - a.week)
 
   return (
     <>
-      <Head title="What changed" sub="Changes in our own sales, and news from the market that may change them." />
+      <Head backLink title="What changed" sub="Changes in our own sales, and news from the market that may change them." />
       <Seg value={tab} onChange={setTab} options={[{ v: 'sales', l: 'In our sales', c: plan.changes.length + plan.oneOffs.length }, { v: 'market', l: 'In the market', c: SIGNALS.length }]} />
       {tab === 'sales' ? <>
         <h3 style={{ margin: '4px 0 0' }}>Sales that moved to a new level</h3>

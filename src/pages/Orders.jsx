@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
 import { HIST, wk, dayLabel, REGIONS } from '../data.js'
 import { sum, fmtT, fmtQty, fmtINR } from '../engine.js'
-import { useApp, Head, Seg, Card, Tile, Empty } from '../ui.jsx'
+import { useApp, Head, Seg, Card, Tile, Empty, useViewState } from '../ui.jsx'
 
 export default function Orders() {
   const { plan, data, go } = useApp()
-  const [tab, setTab] = useState('customer')
-  const [when, setWhen] = useState('ahead')
-  const [status, setStatus] = useState('All')
-  const [region, setRegion] = useState('All')
-  const [q, setQ] = useState('')
+  const [tab, setTab] = useViewState('orders.tab', 'customer')
+  const [when, setWhen] = useViewState('orders.when', 'ahead')
+  const [status, setStatus] = useViewState('orders.status', 'All')
+  const [region, setRegion] = useViewState('orders.region', 'All')
+  const [q, setQ] = useViewState('orders.search', '')
   const all = data.orders
   const list = all.filter(o => (when === 'all' || (when === 'ahead' ? o.week >= HIST : o.week < HIST)) && (status === 'All' || o.status === status) && (region === 'All' || o.region === region)
     && (plan.prodById[o.productId].name + o.customer).toLowerCase().includes(q.toLowerCase())).sort((a, b) => when === 'past' ? b.week - a.week : a.week - b.week)

@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
 import { fmtT, fmtPct, fmtINR, daysText } from '../engine.js'
-import { useApp, Head, Seg, Pill, Card, Tile } from '../ui.jsx'
+import { useApp, Head, Seg, Pill, Card, Tile, useViewState } from '../ui.jsx'
 import { Spark } from '../charts.jsx'
 import { HIST } from '../data.js'
 
 export default function Products() {
   const { plan, go } = useApp()
   const families = [...new Set(plan.products.map(p => p.family))]
-  const [fam, setFam] = useState('All')
-  const [urg, setUrg] = useState('All')
-  const [q, setQ] = useState('')
+  const [fam, setFam] = useViewState('products.group', 'All')
+  const [urg, setUrg] = useViewState('products.urgency', 'All')
+  const [q, setQ] = useViewState('products.search', '')
   const list = plan.products.filter(p => (fam === 'All' || p.family === fam) && (urg === 'All' || p.urgency === urg || (urg === 'Changed' && p.change)) && p.name.toLowerCase().includes(q.toLowerCase()))
   const cnt = (u) => plan.products.filter(p => u === 'Changed' ? p.change : p.urgency === u).length
   return (

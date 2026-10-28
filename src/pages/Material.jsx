@@ -23,7 +23,7 @@ export default function Material({ id }) {
 
   return (
     <>
-      <Head crumb={{ page: 'materials', label: 'Materials & stock' }} title={m.name} sub={`${m.what} · supplier ${m.supplier}`} right={<MatPill m={m} />} />
+      <Head backLink title={m.name} sub={`${m.what} · supplier ${m.supplier}`} right={<MatPill m={m} />} />
       {decisions.length > 0 && <div className="dlist">{decisions.map(d => <DecisionRow key={d.id} d={d} />)}</div>}
       <div className="card"><div className="card-b facts">
         <Fact k="In stock" v={fmtQty(m.onHand, u)} s={fmtINR(m.value)} />
