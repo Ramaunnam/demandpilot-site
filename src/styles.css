@@ -493,3 +493,9 @@ input[type="range"].slider { width: 100%; accent-color: var(--navy); height: 22p
   .doc-grid { grid-template-columns: minmax(0, 1fr); padding: 12px; }
   .lightbox { max-width: 96vw; padding: 10px; }
 }
+
+/* --- back ---------------------------------------------------------------- */
+.back-btn { padding: 0 10px 0 8px; flex: none; }
+.back-btn:disabled { opacity: .35; }
+.back-word { font-size: 13px; }
+@media (max-width: 860px) { .back-word { display: none; } .back-btn { padding: 0 8px; } }
