@@ -3,6 +3,7 @@ import { HIST, AHEAD, REGIONS, wk, SIGNALS } from '../data.js'
 import { sum, fmtT, fmtPct, fmtINR, fmtQty, daysText, whatIf } from '../engine.js'
 import { useApp, Head, Card, Fact, Pill, MatPill, Empty, DecisionRow } from '../ui.jsx'
 import { TimeChart, Legend } from '../charts.jsx'
+import FilesCard from '../FilesCard.jsx'
 
 export function WhatIfBox({ p }) {
   const { plan, go } = useApp()
@@ -123,6 +124,7 @@ export default function Product({ id }) {
           <tbody>{orders.slice(0, 40).map(o => <tr key={o.id}><td className="num">{o.id}</td><td>{o.customer}</td><td>{wk(o.week)}</td><td className="r num">{fmtT(o.qty)}</td><td className="r num">{fmtINR(o.value)}</td><td><span className="tag">{o.status}</span></td></tr>)}</tbody>
         </table></div> : <Empty>No orders.</Empty>}
       </Card>
+      <FilesCard type="product" id={p.id} />
     </>
   )
 }

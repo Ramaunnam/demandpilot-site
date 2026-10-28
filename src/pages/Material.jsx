@@ -3,6 +3,7 @@ import { HIST, wk, dayLabel } from '../data.js'
 import { fmtQty, fmtINR, fmtPct, daysText } from '../engine.js'
 import { useApp, Head, Card, Fact, MatPill, DecisionRow, Empty } from '../ui.jsx'
 import { TimeChart } from '../charts.jsx'
+import FilesCard from '../FilesCard.jsx'
 
 export default function Material({ id }) {
   const { plan, go } = useApp()
@@ -78,6 +79,7 @@ export default function Material({ id }) {
           <tbody>{uses.map(x => <tr key={x.p.id} className="click" onClick={() => go('product', x.p.id)}><td className="nm">{x.p.name}</td><td className="r num">{m.bom[x.p.grade] < 1 ? m.bom[x.p.grade].toFixed(3) : m.bom[x.p.grade]} {u}</td><td className="r num">{fmtQty(x.wk, u)}</td></tr>)}</tbody>
         </table></div>
       </Card>
+      <FilesCard type="material" id={m.id} />
     </>
   )
 }

@@ -10,11 +10,13 @@
     "preview": "vite preview",
     "check": "node scripts/check.mjs",
     "audit": "node scripts/audit-materials.mjs",
-    "verify": "npm run check && npm run audit"
+    "verify": "npm run check && npm run audit && npm run uploads",
+    "uploads": "node scripts/test-uploads.mjs"
   },
   "dependencies": {
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.1.1",
