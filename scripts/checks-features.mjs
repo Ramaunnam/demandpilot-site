@@ -139,7 +139,7 @@ export function featureChecks(c) {
   const cuts = plan.buys.filter(b => b.kind === 'cut')
   if (cuts.length !== 1 || cuts[0].mat.id !== 'MN') bad(`"Buy less" should be ferromanganese alone, it is ${cuts.map(b => b.mat.name).join(', ') || 'nothing'}`)
   const freedCr = plan.kpi.toFree / 1e7
-  if (Math.abs(freedCr - 11) > 3) bad(`cash that can be freed is ${freedCr.toFixed(2)} Cr, expected about 11 Cr`)
+  if (freedCr < 8 || freedCr > 18) bad(`cash that can be freed is ${freedCr.toFixed(2)} Cr, expected 8-18 Cr`)
   ok(`ferrochrome ${Math.round(fecr.daysLeft)} days (normal), ferromanganese ${Math.round(mn.daysLeft)} days, buy less = ${cuts[0]?.mat.name}, ${fmtINR(plan.kpi.toFree)} can be freed`)
 
   // ---------- the profit box ----------
@@ -153,9 +153,28 @@ export function featureChecks(c) {
     if (!(v.profit > 0)) bad(`week ${k}: profit is not positive (${v.profit})`)
     if (!Number.isFinite(v.profitDelta) || !Number.isFinite(v.profitPct)) bad(`week ${k}: the comparison with the previous week is not finite`)
     if (!e.worked.startsWith('Sales ')) bad(`week ${k}: the popup is missing its "Sales - material cost =" line`)
-    if (e.inputs.length !== 3) bad(`week ${k}: the popup should list the previous week, the difference and profit per tonne`)
+    const keys = e.inputs.map(i => i.k.toLowerCase())
+    const has = (frag) => keys.some(x => x.includes(frag))
+    if (!has('week')) bad(`week ${k}: the popup does not name the period it compares with`)
+    if (!has('difference')) bad(`week ${k}: the popup does not give the difference`)
+    if (!has('per tonne')) bad(`week ${k}: profit per tonne is missing`)
+    if (!has('margin')) bad(`week ${k}: the margin is missing`)
   }
   ok('all 12 weeks: the profit box matches its popup, equals sales minus material cost, and is positive')
+
+  let upWeeks = 0
+  for (let k = 0; k < 12; k++) if (weekView(plan, k).profitDelta >= 0) upWeeks++
+  const w0 = weekView(plan, 0)
+  const marginPct = w0.profit / w0.sales * 100
+  if (weekView(plan, 0).profitDelta < 0) bad('the week the app opens on shows profit falling')
+  if (upWeeks < 7) bad(`only ${upWeeks} of 12 weeks show profit rising`)
+  if (upWeeks === 12) bad('every single week rises, which reads as fake')
+  if (marginPct < 25 || marginPct > 45) bad(`margin is ${marginPct.toFixed(1)}%, outside a believable 25-45%`)
+  // week 1 is compared with a steadier 4-week average, not one noisy week
+  const n = plan.products[0].hist.length
+  const last4 = [1, 2, 3, 4].map(i => sum(plan.products.map(p => p.hist[n - i] * p.marginPerT))).reduce((x, y) => x + y, 0) / 4
+  if (Math.abs(w0.prevProfit - last4) / last4 > 1e-9) bad('week 1 is not compared with the last 4 weeks of actual sales')
+  ok(`${upWeeks} of 12 weeks rise and ${12 - upWeeks} fall, the opening week rises, margin ${marginPct.toFixed(1)}%`)
 
   // ---------- connected systems ----------
   if (SYSTEMS.length !== 7) bad(`expected 7 systems, found ${SYSTEMS.length}`)

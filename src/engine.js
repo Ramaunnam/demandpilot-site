@@ -96,7 +96,7 @@ function baseline(data, threshold) {
     const points = []
     for (let t = HIST - 10; t < HIST; t++) {
       const zf = ((raw[t] - det.fitted[t]) / det.fitted[t]) / sr
-      if (Math.abs(zf) >= 4 && det.fitted[t] >= 1) points.push({ t, actual: raw[t], expected: det.fitted[t], z: zf })
+      if (Math.abs(zf) >= 5 && det.fitted[t] >= 1) points.push({ t, actual: raw[t], expected: det.fitted[t], z: zf })
     }
     // shift: the last 6 weeks vs what the model expected 6 weeks ago.
     // Isolated weeks before the window are cleaned first so they don't move the baseline.
@@ -107,9 +107,14 @@ function baseline(data, threshold) {
     const ratio = sum(recent) / sum(baseFc)
     const dir = ratio > 1 ? 1 : -1
     const sameWay = recent.filter((v, k) => (v / baseFc[k] - 1) * dir >= 0.1).length
+    // A new level has to still be there in the latest week. Without this, one freak
+    // week drags the six-week total far enough to look like a permanent change even
+    // though sales went straight back to normal the week after.
+    const stillOff = (recent[5] / baseFc[5] - 1) * dir >= 0.1
     let shift = null
-    // a shift = 4+ of the last 6 weeks clearly off in the same direction, and the total off by the threshold
-    if (sameWay >= 4 && Math.abs(ratio - 1) * 100 >= threshold && mean(recent) >= 1.5) {
+    // a shift = 4+ of the last 6 weeks clearly off the same way, the total off by the
+    // threshold, and the most recent week still off
+    if (sameWay >= 4 && stillOff && Math.abs(ratio - 1) * 100 >= threshold && mean(recent) >= 1.5) {
       let start = HIST - 6
       for (let k = 0; k < 6; k++) if ((recent[k] / baseFc[k] - 1) * dir >= 0.1 && (k === 5 || (recent[k + 1] / baseFc[k + 1] - 1) * dir >= 0.1)) { start = HIST - 6 + k; break }
       shift = { key, productId: p.id, region: reg, ratio, dir, start, beforeWk: mean(baseFc), nowWk: mean(recent.slice(-4)), extraWk: mean(recent.slice(-4)) - mean(baseFc.slice(-4)), baseFc }
@@ -544,7 +549,9 @@ export function computePlan(data, state) {
 // ---------- a single week, for the Command Centre's week selector ----------
 export function weekView(plan, k) {
   const total = plan.factoryFc[k]
-  const prev = k === 0 ? plan.factoryHist[HIST - 1] : plan.factoryFc[k - 1]
+  const prev = k === 0
+    ? mean([1, 2, 3, 4].map(i => plan.factoryHist[HIST - i]))
+    : plan.factoryFc[k - 1]
 
   // Profit: what the steel sells for, less the raw materials in it at today's prices.
   // Week 0 is compared with what last week actually sold; later weeks with the week before.
@@ -552,7 +559,7 @@ export function weekView(plan, k) {
   const matCost = sum(plan.products.map(p => p.fc[k] * p.matCost))
   const profit = sales - matCost
   const prevProfit = k === 0
-    ? sum(plan.products.map(p => p.hist[HIST - 1] * p.marginPerT))
+    ? mean([1, 2, 3, 4].map(i => sum(plan.products.map(p => p.hist[HIST - i] * p.marginPerT))))
     : sum(plan.products.map(p => p.fc[k - 1] * p.marginPerT))
   const profitDelta = profit - prevProfit
   const profitPct = prevProfit ? (profitDelta / prevProfit) * 100 : 0
@@ -563,7 +570,8 @@ export function weekView(plan, k) {
     formula: 'For every product: forecast tonnes × (price per tonne − material cost per tonne), all added up',
     worked: `Sales ${fmtINR(sales)} − material cost ${fmtINR(matCost)} = ${fmtINR(profit)}`,
     inputs: [
-      { k: k === 0 ? 'Last week (actual sales)' : 'The week before', v: fmtINR(prevProfit) },
+      { k: k === 0 ? 'Last 4 weeks (average actual)' : 'The week before', v: fmtINR(prevProfit) },
+      { k: 'Margin', v: `${(profit / sales * 100).toFixed(1)}% of sales` },
       { k: 'Difference', v: `${profitDelta >= 0 ? '+' : '−'}${fmtINR(Math.abs(profitDelta))} (${fmtPct(profitPct, 1)})` },
       { k: 'Profit per tonne', v: `${fmtINR(profit / Math.max(0.01, total))} on ${fmtT(total)}` },
     ],
@@ -576,7 +584,7 @@ export function weekView(plan, k) {
   const from = k * 7 - TODAY_OFFSET, to = from + 6
   const mustOrder = plan.buys.filter(b => b.kind === 'buy' && (k === 0 ? b.orderByDay <= to : b.orderByDay >= from && b.orderByDay <= to))
   const ex = { title: `Expected sales, week of ${wkRange(HIST + k)}`, value: fmtT(total), means: 'Forecast sales for every product that week, added up.',
-    formula: 'Sum of every product\'s forecast for the week', worked: `${plan.products.length} products added = ${fmtT(total)}; ${k === 0 ? 'last week actual' : 'week before'} ${fmtT(prev)} → ${fmtPct((total / prev - 1) * 100, 1)}`, inputs: [] }
+    formula: 'Sum of every product\'s forecast for the week', worked: `${plan.products.length} products added = ${fmtT(total)}; ${k === 0 ? 'last 4 weeks average' : 'week before'} ${fmtT(prev)} → ${fmtPct((total / prev - 1) * 100, 1)}`, inputs: [] }
   return { k, total, prev, change: (total / prev - 1) * 100, top, up, down, mustOrder, ex,
     profit, prevProfit, profitDelta, profitPct, profitEx, sales, profitMatCost: matCost }
 }

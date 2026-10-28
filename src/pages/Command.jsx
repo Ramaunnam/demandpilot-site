@@ -38,10 +38,10 @@ export default function Command() {
 
       <div className="grid g4">
         <Tile k={`Demand · ${label.toLowerCase()}`} light={Math.abs(v.change) > 8 ? 'soon' : 'good'} e={v.ex}
-          v={fmtT(v.total)} d={<><span className={v.change >= 0 ? 'up' : 'down'}>{fmtPct(v.change, 1)}</span> vs {k === 0 ? 'last week' : 'the week before'}</>} onClick={() => go('forecast')} />
+          v={fmtT(v.total)} d={<><span className={v.change >= 0 ? 'up' : 'down'}>{fmtPct(v.change, 1)}</span> vs {k === 0 ? 'the last 4 weeks' : 'the week before'}</>} onClick={() => go('forecast')} />
         <Tile k={`Profit · ${label.toLowerCase()}`} light={v.profitDelta >= 0 ? 'good' : 'urgent'} e={v.profitEx}
           v={fmtINR(v.profit)}
-          d={<><span className={v.profitDelta >= 0 ? 'up' : 'down'}>{v.profitDelta >= 0 ? '▲' : '▼'} {fmtINR(Math.abs(v.profitDelta))}</span> {v.profitDelta >= 0 ? 'more' : 'less'} than {k === 0 ? 'last week' : 'the week before'}</>}
+          d={<><span className={v.profitDelta >= 0 ? 'up' : 'down'}>{v.profitDelta >= 0 ? '▲' : '▼'} {fmtINR(Math.abs(v.profitDelta))}</span> {v.profitDelta >= 0 ? 'more' : 'less'} than {k === 0 ? 'the last 4 weeks' : 'the week before'}</>}
           onClick={() => go('products')} />
         <Tile k="Supply · materials running out" light={kp.matsAtRisk ? 'urgent' : 'good'} tone={kp.matsAtRisk ? 'red' : 'green'} e={plan.explain.matsAtRisk}
           v={`${kp.matsAtRisk}`} small={`of ${plan.materials.length}`} d={kp.matsAtRisk ? plan.materials.filter(m => m.urgency === 'Urgent').map(m => m.name).join(', ') + ' — before new supply arrives' : 'Every material lasts until new supply arrives'} onClick={() => go('materials')} />

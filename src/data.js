@@ -21,11 +21,14 @@ export const dayLabel = (days) => { const d = new Date(DAY0 + 2 * 864e5 + days *
 export const TODAY_OFFSET = 2           // today is Wednesday 28 Oct, 2 days into the week
 
 // price is per tonne of hot-rolled coil, the base every other form is priced up from.
+// trend is the yearly growth in demand; amp/phase set the shape of the year and amp2/
+// phase2 add a shorter ripple on top, so weeks genuinely rise and fall rather than
+// sliding one way. phase is chosen so the site is in the growing half of its year.
 export const GRADES = [
-  { id: '304', what: 'The general-purpose stainless steel', price: 340000, w: 0.42, trend: 0.04, amp: 0.10, phase: 0.3 },
-  { id: '316L', what: 'Acid-proof, for pharma and food plants', price: 460000, w: 0.22, trend: 0.06, amp: 0.08, phase: 1.5 },
-  { id: '430', what: 'No nickel, for home appliances', price: 190000, w: 0.20, trend: 0.01, amp: 0.15, phase: 2.6 },
-  { id: '201', what: 'Lower cost, for furniture and coaches', price: 260000, w: 0.16, trend: 0.03, amp: 0.10, phase: 3.9 },
+  { id: '304', what: 'The general-purpose stainless steel', price: 400000, w: 0.42, trend: 0.10, amp: 0.10, phase: 0.2, amp2: 0.045, phase2: 6.04 },
+  { id: '316L', what: 'Acid-proof, for pharma and food plants', price: 540000, w: 0.22, trend: 0.14, amp: 0.08, phase: 6.0, amp2: 0.050, phase2: 2.92 },
+  { id: '430', what: 'No nickel, for home appliances', price: 225000, w: 0.20, trend: 0.07, amp: 0.13, phase: 0.5, amp2: 0.040, phase2: 5.13 },
+  { id: '201', what: 'Lower cost, for furniture and coaches', price: 305000, w: 0.16, trend: 0.09, amp: 0.10, phase: 6.1, amp2: 0.050, phase2: 2.50 },
 ]
 // adj is the price premium over the hot-rolled base: cold rolling and polishing are
 // both extra passes through the mill, so they sell for more per tonne.
@@ -65,10 +68,10 @@ const WEEKLY_TONNES = 4500
 // Raw materials: per tonne of finished steel, by grade.
 export const MATERIALS = [
   { id: 'SCR', name: 'Stainless steel scrap', what: 'Main metal input, melted first', unit: 't', price: 142000, lead: 9, supplier: 'Metro Scrap Traders', lot: 50, safetyDays: 7, cover: 35, bom: { '304': 0.72, '316L': 0.66, '430': 0.80, '201': 0.75 } },
-  { id: 'FECR', name: 'Ferrochrome', what: 'Adds chromium, makes steel rust-proof', unit: 't', price: 118000, lead: 21, supplier: 'Eastern Alloys', lot: 25, safetyDays: 10, cover: 65, index: 'ferrochrome', bom: { '304': 0.30, '316L': 0.28, '430': 0.27, '201': 0.25 } },
+  { id: 'FECR', name: 'Ferrochrome', what: 'Adds chromium, makes steel rust-proof', unit: 't', price: 118000, lead: 21, supplier: 'Eastern Alloys', lot: 25, safetyDays: 10, cover: 71, index: 'ferrochrome', bom: { '304': 0.30, '316L': 0.28, '430': 0.27, '201': 0.25 } },
   { id: 'NI', name: 'Nickel', what: 'Makes steel tough and shiny (304, 316L, 201)', unit: 't', price: 1680000, lead: 35, supplier: 'Global Nickel Imports', lot: 2, safetyDays: 14, cover: 70, index: 'nickel', bom: { '304': 0.085, '316L': 0.105, '430': 0, '201': 0.045 } },
   { id: 'MO', name: 'Ferromolybdenum', what: 'Makes 316L acid-proof; only 316L uses it', unit: 't', price: 2450000, lead: 42, supplier: 'Specialty Alloys Ltd', lot: 1, safetyDays: 14, cover: 21, index: 'moly', bom: { '304': 0, '316L': 0.028, '430': 0, '201': 0 } },
-  { id: 'MN', name: 'Ferromanganese', what: 'Replaces some nickel in 201', unit: 't', price: 96000, lead: 18, supplier: 'Eastern Alloys', lot: 10, safetyDays: 10, cover: 133, bom: { '304': 0.012, '316L': 0.012, '430': 0.010, '201': 0.065 } },
+  { id: 'MN', name: 'Ferromanganese', what: 'Replaces some nickel in 201', unit: 't', price: 96000, lead: 18, supplier: 'Eastern Alloys', lot: 10, safetyDays: 10, cover: 154, bom: { '304': 0.012, '316L': 0.012, '430': 0.010, '201': 0.065 } },
   { id: 'LIME', name: 'Burnt lime', what: 'Cleans impurities in the furnace', unit: 't', price: 9800, lead: 7, supplier: 'Deccan Minerals', lot: 20, safetyDays: 5, cover: 30, bom: { '304': 0.055, '316L': 0.055, '430': 0.05, '201': 0.055 } },
   { id: 'AR', name: 'Argon gas', what: 'Protects molten steel from air', unit: 'm³', price: 38, lead: 3, supplier: 'City Industrial Gases', lot: 5000, safetyDays: 3, cover: 14, bom: { '304': 12, '316L': 12, '430': 11, '201': 12 } },
   { id: 'HNO3', name: 'Nitric acid', what: 'Cleans the steel surface (pickling)', unit: 'L', price: 42, lead: 10, supplier: 'Chem Supplies Co', lot: 5000, safetyDays: 7, cover: 40, bom: { '304': 8, '316L': 9, '430': 7, '201': 8 } },
@@ -81,11 +84,11 @@ export const matOf = (id) => MATERIALS.find(m => m.id === id)
 
 // Production lines, in the order steel moves through the works.
 export const LINES = [
-  { id: 'MELT', name: 'Melting & casting', cap: 6200, all: true },
-  { id: 'HOT', name: 'Hot rolling', cap: 6100, all: true },
+  { id: 'MELT', name: 'Melting & casting', cap: 7000, all: true },
+  { id: 'HOT', name: 'Hot rolling', cap: 6900, all: true },
   { id: 'COLD', name: 'Cold rolling', cap: 4500, all: false, maintenance: { week: HIST + 3, pct: 75 } },
-  { id: 'ANNEAL', name: 'Annealing & pickling', cap: 4700, all: false },
-  { id: 'FINISH', name: 'Finishing & packing', cap: 6100, all: true },
+  { id: 'ANNEAL', name: 'Annealing & pickling', cap: 5100, all: false },
+  { id: 'FINISH', name: 'Finishing & packing', cap: 6900, all: true },
 ]
 
 const CUSTOMER_TYPES = [
@@ -154,9 +157,13 @@ export function buildData() {
     for (const reg of REGIONS) {
       const base = WEEKLY_TONNES * p.share * reg.w
       const phase = g.phase + (r() - 0.5) * 0.4
+      const phase2 = g.phase2 + phase * 1.7
       const y = new Array(HIST)
       for (let t = 0; t < HIST; t++) {
-        let v = base * (1 + g.trend * t / 52) * (1 + g.amp * Math.sin(2 * Math.PI * t / 52 + phase))
+        // the shape of the year, plus a ~13-week ripple so weeks rise and fall
+        const season = g.amp * Math.sin(2 * Math.PI * t / 52 + phase)
+          + g.amp2 * Math.sin(8 * Math.PI * t / 52 + phase2)
+        let v = base * (1 + g.trend * t / 52) * (1 + season)
         for (const s of SHIFTS) {
           if (s.grade === p.grade && s.region === reg.id && (!s.form || s.form === p.form) && t >= s.from) {
             v *= t === s.from ? 1 + (s.x - 1) / 2 : s.x
