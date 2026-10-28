@@ -35,6 +35,7 @@ await build({
   entryPoints: [join(root, 'scripts', 'entry.jsx')],
   bundle: true, format: 'esm', platform: 'node', outfile: join(out, 'app.mjs'),
   external: ['react', 'react-dom', 'react-dom/server'], jsx: 'automatic', logLevel: 'error',
+  loader: { '.png': 'dataurl' },   // the brand logo is imported by App.jsx
 })
 const app = await import('file://' + join(out, 'app.mjs').replace(/\\/g, '/'))
 const { PAGES, Ctx, buildData, computePlan, DEFAULT_SETTINGS, weekView, whatIf, SYSTEMS, FLOW, fmtINR, sum } = app

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildData, SITE, HIST, wkYear, SYSTEMS } from './data.js'
 import { computePlan, DEFAULT_SETTINGS, fmtQty, fmtINR } from './engine.js'
 import { Ctx, Icon, Drawer, Knob, Boundary } from './ui.jsx'
+import logo from './assets/j2w-logo.png'
 import Command from './pages/Command.jsx'
 import Decisions from './pages/Decisions.jsx'
 import Changes from './pages/Changes.jsx'
@@ -61,7 +62,12 @@ function load() {
 }
 
 function readTheme() {
-  try { return localStorage.getItem('dp.theme') || 'system' } catch { return 'system' }
+  try {
+    const saved = localStorage.getItem('dp.theme')
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch { /* storage blocked */ }
+  // nothing saved yet: open in whatever the device is set to
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' } catch { return 'light' }
 }
 
 export default function App() {
@@ -95,12 +101,10 @@ export default function App() {
 
   useEffect(() => { document.title = `${TITLES[route.page] ?? 'DemandPilot'} · DemandPilot` }, [route.page])
 
-  // ---- theme ----
+  // ---- theme: light or dark, nothing else ----
   useEffect(() => {
-    const r = document.documentElement
-    if (theme === 'system') delete r.dataset.theme
-    else r.dataset.theme = theme
-    try { theme === 'system' ? localStorage.removeItem('dp.theme') : localStorage.setItem('dp.theme', theme) } catch { /* storage blocked */ }
+    document.documentElement.dataset.theme = theme
+    try { localStorage.setItem('dp.theme', theme) } catch { /* storage blocked */ }
   }, [theme])
 
   // ---- save ----
@@ -225,9 +229,9 @@ export default function App() {
       <a className="skip" href="#main">Skip to the page</a>
       <div className="app">
         <aside className="side">
-          <button className="brand" onClick={() => go('command')} aria-label="DemandPilot home">
-            <span className="brand-mark">J2W</span>
-            <span><b>DemandPilot</b><span>Demand-driven planning</span></span>
+          <button className="brand" onClick={() => go('command')} aria-label="DemandPilot by JoulesToWatts — home">
+            <img className="brand-logo" src={logo} alt="JoulesToWatts" width="400" height="194" />
+            <span className="brand-name"><b>DemandPilot</b><span>Demand-driven planning</span></span>
           </button>
           <nav className="nav" aria-label="Main">
             {NAV.map(g => (
@@ -269,9 +273,10 @@ export default function App() {
                 )}
               </div>
               <button className="btn ghost" title="Planning settings" aria-label="Planning settings" onClick={() => setShowSettings(true)}><Icon name="gear" /></button>
-              <button className="btn ghost" title={`Theme: ${theme}. Click to change.`} aria-label={`Theme: ${theme}. Click to change.`}
-                onClick={() => setTheme(t => (t === 'system' ? 'dark' : t === 'dark' ? 'light' : 'system'))}>
-                <Icon name={theme === 'dark' ? 'moon' : theme === 'light' ? 'sun' : 'gear'} />
+              <button className="btn ghost" title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                onClick={() => setTheme(t => (t === 'dark' ? 'light' : 'dark'))}>
+                <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
               </button>
             </div>
           </header>
@@ -301,7 +306,7 @@ export default function App() {
             <div className="row between"><b>Appearance</b></div>
             <div style={{ marginTop: 6 }}>
               <div className="seg" role="group" aria-label="Theme">
-                {['system', 'light', 'dark'].map(t => (
+                {['light', 'dark'].map(t => (
                   <button key={t} type="button" aria-pressed={theme === t} className={theme === t ? 'on' : ''} onClick={() => setTheme(t)}>{t[0].toUpperCase() + t.slice(1)}</button>
                 ))}
               </div>

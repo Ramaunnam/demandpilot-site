@@ -22,6 +22,7 @@ await build({
   entryPoints: [join(root, 'scripts', 'entry.jsx')],
   bundle: true, format: 'esm', platform: 'node', outfile: join(out, 'peek.mjs'),
   external: ['react', 'react-dom', 'react-dom/server'], jsx: 'automatic', logLevel: 'error',
+  loader: { '.png': 'dataurl' },   // the brand logo is imported by App.jsx
 })
 const app = await import(pathToFileURL(join(out, 'peek.mjs')).href)
 const { PAGES, Ctx, buildData, computePlan, DEFAULT_SETTINGS } = app

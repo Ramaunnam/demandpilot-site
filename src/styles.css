@@ -56,10 +56,12 @@ a { color: inherit; }
 /* shell */
 .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100%; }
 .side { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--surface); border-right: 1px solid var(--line); padding: 16px 12px; display: flex; flex-direction: column; gap: 14px; }
-.brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 6px; border: 0; background: none; width: 100%; text-align: left; border-radius: 9px; }
+.brand { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 6px 6px 8px; border: 0; background: none; width: 100%; text-align: left; border-radius: 10px; }
 .brand:hover { background: var(--surface-2); }
 .brand > span { min-width: 0; }
-.brand-mark { width: 36px; height: 36px; border-radius: 9px; background: var(--navy); color: var(--on-navy); display: grid; place-items: center; font-weight: 800; font-size: 12px; letter-spacing: -.02em; flex: none; }
+/* The wordmark is dark ink on a transparent background, so it keeps its own colours
+   and sits on a light plate wherever the surface behind it is dark. */
+.brand-logo { width: 150px; max-width: 100%; height: auto; display: block; }
 .brand b { display: block; font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
 .brand span { font-size: 11.5px; color: var(--ink-3); }
 .nav { display: flex; flex-direction: column; gap: 1px; }
@@ -83,7 +85,7 @@ a { color: inherit; }
 .search-res button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: 8px 12px; }
 .search-res button:hover { background: var(--surface-2); }
 .search-res small { color: var(--ink-3); display: block; font-size: 11.5px; }
-.page { padding: 20px 24px 48px; display: flex; flex-direction: column; gap: 16px; max-width: 1500px; width: 100%; }
+.page { padding: 20px 24px 48px; display: flex; flex-direction: column; gap: 16px; width: 100%; }
 
 .ph { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .ph h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
@@ -392,4 +394,42 @@ input[type="range"].slider { width: 100%; accent-color: var(--navy); height: 22p
   .page { padding: 0; max-width: none; }
   .card { break-inside: avoid; box-shadow: none; border-color: #ccc; }
   body { background: #fff; }
+}
+
+/* --- JoulesToWatts wordmark --------------------------------------------- */
+/* Dark ink on transparency, so on a dark surface it gets a light plate rather
+   than having its brand colours altered. */
+:root[data-theme="dark"] .brand-logo {
+  background: #fff; padding: 7px 10px; border-radius: 9px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .brand-logo {
+    background: #fff; padding: 7px 10px; border-radius: 9px;
+  }
+}
+@media (max-width: 860px) {
+  .brand { flex-direction: row; align-items: center; gap: 10px; padding: 4px 6px; }
+  .brand-logo { width: 112px; }
+  :root[data-theme="dark"] .brand-logo { padding: 5px 7px; }
+}
+@media print {
+  .brand-logo { background: none !important; padding: 0 !important; }
+}
+
+/* --- wide screens -------------------------------------------------------- */
+/* The content fills the window; the gutter grows a little so nothing hugs the
+   edge, and the top bar keeps the same gutter as the page below it. */
+@media (min-width: 1500px) {
+  .top { padding-left: 32px; padding-right: 32px; }
+  .page { padding-left: 32px; padding-right: 32px; }
+  .side { padding: 18px 14px; }
+}
+@media (min-width: 1900px) {
+  .top { padding-left: 40px; padding-right: 40px; }
+  .page { padding-left: 40px; padding-right: 40px; }
+  .app { grid-template-columns: 264px minmax(0, 1fr); }
+  .brand-logo { width: 170px; }
+  /* room to spare, so the headline tiles and the two-column rows breathe */
+  .g-cc { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); }
+  .facts { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 }

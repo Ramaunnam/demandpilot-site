@@ -20,6 +20,7 @@ globalThis.matchMedia = () => ({ matches: false, addEventListener() {}, removeEv
 await build({
   entryPoints: [join(root, 'scripts', 'entry.jsx')], bundle: true, format: 'esm', platform: 'node',
   outfile: join(out, 'audit.mjs'), external: ['react', 'react-dom', 'react-dom/server'], jsx: 'automatic', logLevel: 'error',
+  loader: { '.png': 'dataurl' },   // the brand logo is imported by App.jsx
 })
 const app = await import(pathToFileURL(join(out, 'audit.mjs')).href)
 const { PAGES, Ctx, buildData, computePlan, DEFAULT_SETTINGS, fmtINR, fmtQty } = app
@@ -42,6 +43,9 @@ const draw = (page, id = null) => renderToStaticMarkup(
 // (rendered by driving its step state through a wrapper is not possible, so the
 // Plan page is audited on its default step and its buy rows are audited from the list).
 const SCREENS = ['command', 'decisions', 'changes', 'materials', 'buy', 'plan', 'orders', 'product', 'simulate', 'method']
+// Screens whose pill beside a material is the MATERIAL's status. On Decisions the pill
+// is the decision's own priority, printed next to an "Order" / "Buy less" tag.
+const STATUS_SCREENS = ['command', 'materials', 'buy', 'plan', 'product', 'material']
 
 const STATUS = ['Urgent', 'Soon', 'Watch', 'Info', 'OK', 'Good']
 const NL = String.fromCharCode(10)
@@ -94,6 +98,7 @@ console.log(NL + '2. Status shown for each material, screen by screen')
     for (const chunk of chunks) {
       for (const m of plan.materials) {
         if (!chunk.includes(m.name)) continue
+        if (!STATUS_SCREENS.includes(page)) continue
         const pills = pillText(chunk)
         for (const p of pills) record(m.id, page, `${p.urgency}:${p.text || '(default)'}`)
       }
@@ -179,11 +184,14 @@ console.log(NL + '5. Units')
   const units = new Map()
   for (const m of plan.materials) units.set(m.id, m.unit)
   for (const m of plan.materials) {
-    const own = draw('material', m.id).replace(/<[^>]*>/g, ' ')
-    // every quantity on the material page should carry that material's unit
+    const own = draw('material', m.id)
+      .replace(/<[^>]*>/g, ' ')
+      // "₹17.4 L" is lakh and "₹4.5 Cr" is crore — money, not a quantity in litres
+      .replace(/₹\s?[\d,.]+\s?(L|Cr)(\s|$)/g, ' MONEY ')
+    // every quantity on the material page should carry that material's own unit
     const others = [...new Set([...units.values()])].filter(u => u !== m.unit)
     for (const u of others) {
-      const re = new RegExp(`[0-9] ${u}([^a-zA-Z]|$)`)
+      const re = new RegExp(`[0-9]\\s${u}(\\s|$)`)
       if (re.test(own)) flag(`${m.name} (${m.unit}) shows a quantity in "${u}" on its own page`)
     }
   }
