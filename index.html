@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DemandPilot · Integrated Steelworks</title>
+    <meta name="description" content="DemandPilot turns two years of weekly sales into a 12-week demand forecast, a production plan and the material orders to place — with every number explained." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F3F6F9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0B1520" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23143F5C'/%3E%3Cpath d='M6 22.5 13 15l4.5 4.5L26 10' fill='none' stroke='%233CC2B4' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='26' cy='10' r='2.6' fill='%23fff'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" />
+    <script>
+      // Apply the saved theme before first paint so there is no flash of the wrong one.
+      try {
+        var t = localStorage.getItem('dp.theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch (e) { /* storage blocked */ }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>DemandPilot needs JavaScript to work out the forecast and the plan.</noscript>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
