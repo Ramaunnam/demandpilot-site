@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { buildData, SITE, HIST, wkYear, SYSTEMS } from './data.js'
-import { computePlan, DEFAULT_SETTINGS, fmtQty, fmtINR } from './engine.js'
+import { buildData, SITE, HIST, wkYear, SYSTEMS, todayLabel, fmtWhen } from './data.js'
+import { computePlan, DEFAULT_SETTINGS, fmtQty, fmtINR, fmtT } from './engine.js'
 import { Ctx, Icon, Drawer, Knob, Boundary } from './ui.jsx'
 import logo from './assets/j2w-logo.png'
 import Command from './pages/Command.jsx'
@@ -49,7 +49,11 @@ function readHash() {
   } catch { return { page: 'command', id: null } }
 }
 
-const fresh = () => ({ settings: { ...DEFAULT_SETTINGS }, decisions: {}, approved: [], approvedIds: {}, rejected: {}, edits: {}, dismissed: {}, log: [], poSeq: 3400, sync: {} })
+const fresh = () => ({
+  settings: { ...DEFAULT_SETTINGS }, decisions: {}, approved: [], approvedIds: {}, rejected: {},
+  edits: {}, dismissed: {}, log: [], poSeq: 3400, sync: {},
+  production: [], activity: [], woSeq: 900,
+})
 
 // Decisions taken in the session survive a reload, so the demo can be picked up again.
 function load() {
@@ -120,9 +124,14 @@ export default function App() {
     setQ(''); setHi(0)
   }, [])
 
-  // With no previous screen, Back goes up to the page this one belongs under.
-  const parentOf = (page) => PARENT[page] ?? (page === 'command' ? null : 'command')
-  const backTo = prev ?? (parentOf(route.page) ? { page: parentOf(route.page), id: null } : null)
+  // Back is for coming out of something you opened, so it appears only on the screens
+  // that show one particular thing — a product, a material, a sales change, a what-if.
+  // On the Command Centre or any list reached from the side rail there is nothing to
+  // come out of, so no button is shown.
+  const DETAIL_HOME = { product: 'products', material: 'materials', changes: 'changes', simulate: 'simulate' }
+  const inDetail = !!(route.id && DETAIL_HOME[route.page])
+  const parentOf = (page) => DETAIL_HOME[page] ?? null
+  const backTo = !inDetail ? null : (prev ?? { page: DETAIL_HOME[route.page], id: null })
   const canBack = !!backTo
   const backLabel = !backTo ? null
     : backTo.page === 'product' ? (plan.prodById[backTo.id]?.name ?? 'Products')
@@ -131,7 +140,7 @@ export default function App() {
 
   const back = useCallback(() => {
     if (prev) { try { window.history.back(); return } catch { /* sandbox */ } }
-    const p = parentOf(routeRef.current.page)
+    const p = routeRef.current.id ? parentOf(routeRef.current.page) : null
     if (p) go(p)
   }, [prev, go])
 
@@ -153,7 +162,15 @@ export default function App() {
   }, [])
   useEffect(() => () => clearTimeout(timer.current), [])
 
-  const log = (s, text) => ({ ...s, log: [{ at: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }), text }, ...s.log].slice(0, 60) })
+  const clockNow = () => new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  const log = (s, text) => ({ ...s, log: [{ at: clockNow(), text }, ...s.log].slice(0, 60) })
+
+  // One row per thing the planner did: what it was, the screen that now shows it, and
+  // what to put back if they change their mind.
+  const record = (s, e) => ({
+    ...log(s, e.text),
+    activity: [{ id: `AC-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, at: clockNow(), when: Date.now(), ...e }, ...s.activity].slice(0, 80),
+  })
 
   const act = useMemo(() => {
     const a = {
@@ -162,24 +179,39 @@ export default function App() {
         setState(s => {
           const seq = s.poSeq + 1
           const po = {
-            id: `PO-26-${seq}`, mat: b.mat.id, qty: q2, placedDay: 0,
+            id: `PO-26-${seq}`, mat: b.mat.id, qty: q2, placedDay: 0, placedAt: Date.now(),
             dueDay: Math.max(1, b.arrivesDay ?? b.mat.lead), status: 'Placed', rush: b.late,
             cost: q2 * b.mat.priceNow * (b.late ? 1 + s.settings.rushPremium / 100 : 1), approvedNow: true,
           }
           const edits = { ...s.edits }; delete edits[b.id]
-          return log({ ...s, poSeq: seq, approved: [...s.approved, po], edits },
-            `Order placed: ${po.id}, ${fmtQty(q2, b.mat.unit)} ${b.mat.name} from ${b.supplier}${b.late ? ' (rush)' : ''}`)
+          return record({ ...s, poSeq: seq, approved: [...s.approved, po], edits }, {
+            kind: 'Order placed', what: `${po.id} · ${fmtQty(q2, b.mat.unit)} ${b.mat.name}`,
+            text: `Order placed: ${po.id}, ${fmtQty(q2, b.mat.unit)} ${b.mat.name} from ${b.supplier}${b.late ? ' (rush)' : ''}`,
+            link: { page: 'orders', id: 'po' }, linkLabel: 'See it in Orders',
+            undo: { type: 'order', id: po.id },
+          })
         })
         notify(`Order placed: ${fmtQty(q2, b.mat.unit)} ${b.mat.name}. Arrives in about ${b.arrivesDay ?? b.mat.lead} days (demo).`)
       },
       rejectBuy(b) {
-        setState(s => log({ ...s, rejected: { ...s.rejected, [b.id]: true } }, `Rejected: ${b.kind === 'cut' ? 'skip order for' : 'order of'} ${b.mat.name}`))
-        notify(`Rejected. ${b.mat.name} removed from the buy list.`)
+        setState(s => record({ ...s, rejected: { ...s.rejected, [b.id]: true } }, {
+          kind: 'Not ordered', what: `${b.mat.name} — ${b.kind === 'cut' ? 'kept buying as normal' : 'order turned down'}`,
+          text: `Not ordered: ${b.mat.name}`,
+          matName: b.mat.name, matId: b.mat.id, qty: b.kind === 'cut' ? null : b.qty, unit: b.mat.unit,
+          cost: b.kind === 'cut' ? null : b.cost,
+          link: { page: 'orders', id: 'no' }, linkLabel: 'See it in Orders',
+          undo: { type: 'reject', id: b.id },
+        }))
+        notify(`${b.mat.name} not ordered. It is listed under "Not ordered" on the Buy screen.`)
       },
       editQty(id, qty) { setState(s => ({ ...s, edits: { ...s.edits, [id]: qty } })) },
       decideChange(c, status) {
         const label = { real: 'Real change', oneoff: 'One-off', check: 'Check with sales', open: 'Reopened' }[status]
-        setState(s => log({ ...s, decisions: { ...s.decisions, [c.id]: status } }, `${label}: ${c.title}`))
+        setState(s => record({ ...s, decisions: { ...s.decisions, [c.id]: status } }, {
+          kind: label, what: c.title, text: `${label}: ${c.title}`,
+          link: { page: 'changes', id: c.id }, linkLabel: 'See the sales',
+          undo: status === 'open' ? null : { type: 'change', id: c.id },
+        }))
         notify(status === 'real' ? `${c.title}: accepted as a real change. Forecast, production and buying updated.`
           : status === 'oneoff' ? `${c.title}: treated as one-off. The forecast ignores those weeks.`
             : status === 'check' ? `${c.title}: sent to the sales team to check (demo).` : 'Reopened.')
@@ -187,17 +219,46 @@ export default function App() {
       approveDecision(d) {
         if (d.id.startsWith('BUY:')) { const b = plan.buys.find(x => x.id === d.id); if (b) a.approveBuy(b); return }
         if (d.id.startsWith('CUT:')) {
-          setState(s => log({ ...s, approvedIds: { ...s.approvedIds, [d.id]: true } }, `Next order skipped: ${d.name}`))
+          setState(s => record({ ...s, approvedIds: { ...s.approvedIds, [d.id]: true } }, {
+            kind: 'Buying less', what: `${d.name} — next order skipped`,
+            text: `Next order skipped: ${d.name}`,
+            link: { page: 'material', id: d.link.id }, linkLabel: 'Open the material',
+            undo: { type: 'approvedId', id: d.id },
+          }))
           notify(`${d.name}: next order skipped. Cash stays free.`); return
         }
         if (d.id.startsWith('MAKE:')) {
-          setState(s => log({ ...s, approvedIds: { ...s.approvedIds, [d.id]: true } }, `Production plan updated: ${d.name}`))
-          notify(`${d.name}: extra production added to the plan (demo).`); return
+          const p = plan.prodById[d.link.id]
+          setState(s => {
+            const seq = s.woSeq + 1
+            const wo = {
+              id: `WO-26-${seq}`, productId: d.link.id, name: p?.name ?? d.name,
+              qty: Math.max(0, (p?.target ?? 0) - (p?.position ?? 0)), weeks: 6,
+              line: p?.cold ? 'Cold rolling' : 'Hot rolling', status: 'Planned',
+              at: clockNow(), raisedAt: Date.now(), fromDecision: d.id,
+            }
+            return record({ ...s, woSeq: seq, production: [wo, ...s.production], approvedIds: { ...s.approvedIds, [d.id]: true } }, {
+              kind: 'Production planned', what: `${wo.id} · ${fmtT(wo.qty)} of ${wo.name}`,
+              text: `Production planned: ${wo.id}, ${fmtT(wo.qty)} of ${wo.name} over 6 weeks`,
+              link: { page: 'orders', id: 'wo' }, linkLabel: 'See it in Orders',
+              undo: { type: 'make', id: wo.id, decisionId: d.id },
+            })
+          })
+          notify(`Production order raised for ${d.name}. It is in Orders under Production orders.`); return
         }
-        setState(s => log({ ...s, dismissed: { ...s.dismissed, [d.id]: true } }, `Noted: ${d.name}`))
-        notify('Noted. Sent to the production planner (demo).')
+        setState(s => record({ ...s, dismissed: { ...s.dismissed, [d.id]: true } }, {
+          kind: 'Noted', what: d.name, text: `Noted: ${d.name}`,
+          link: d.link, linkLabel: 'Open it', undo: { type: 'dismiss', id: d.id },
+        }))
+        notify('Noted and taken off the list. It is under "What you did" on Decisions.')
       },
-      dismiss(d) { setState(s => log({ ...s, dismissed: { ...s.dismissed, [d.id]: true } }, `Dismissed: ${d.name}`)); notify('Dismissed.') },
+      dismiss(d) {
+        setState(s => record({ ...s, dismissed: { ...s.dismissed, [d.id]: true } }, {
+          kind: 'Set aside', what: d.name, text: `Set aside: ${d.name}`,
+          link: d.link, linkLabel: 'Open it', undo: { type: 'dismiss', id: d.id },
+        }))
+        notify(`"${d.name}" set aside. Undo it under "What you did" on Decisions.`)
+      },
       syncSystem(sys) {
         const at = Date.now()
         setState(s => log({ ...s, sync: { ...s.sync, [sys.id]: { at, status: 'Live' } } }, `Synced ${sys.name}`))
@@ -207,6 +268,25 @@ export default function App() {
         const at = Date.now()
         setState(s => log({ ...s, sync: Object.fromEntries(SYSTEMS.map(x => [x.id, { at, status: 'Live' }])) }, 'Synced all systems'))
         notify(`All ${SYSTEMS.length} systems synced just now (demo).`)
+      },
+      undo(entry) {
+        if (!entry?.undo) return
+        const u = entry.undo
+        setState(s => {
+          const n = { ...s }
+          if (u.type === 'order') n.approved = s.approved.filter(p => p.id !== u.id)
+          if (u.type === 'reject') { const r = { ...s.rejected }; delete r[u.id]; n.rejected = r }
+          if (u.type === 'approvedId') { const a = { ...s.approvedIds }; delete a[u.id]; n.approvedIds = a }
+          if (u.type === 'make') {
+            n.production = s.production.filter(w => w.id !== u.id)
+            const a = { ...s.approvedIds }; delete a[u.decisionId]; n.approvedIds = a
+          }
+          if (u.type === 'dismiss') { const d = { ...s.dismissed }; delete d[u.id]; n.dismissed = d }
+          if (u.type === 'change') { const d = { ...s.decisions }; delete d[u.id]; n.decisions = d }
+          n.activity = s.activity.filter(x => x.id !== entry.id)
+          return log(n, `Undone: ${entry.text}`)
+        })
+        notify(`Undone: ${entry.what}. It is back on the list.`)
       },
       setting(patch) { setState(s => ({ ...s, settings: { ...s.settings, ...patch } })) },
       reset() { setState(fresh()); notify('Demo reset. Every decision cleared.') },
@@ -297,7 +377,7 @@ export default function App() {
                 <span className="back-word">Back</span>
               </button>
             )}
-            <span className="site">{SITE.name}<small>{SITE.short} · {wkYear(HIST)} week</small></span>
+            <span className="site">{SITE.name}<small>{SITE.short} · {todayLabel()}</small></span>
             <span className="badge-mock" title="Every number here is worked out from generated sample data">Mock data</span>
             <div className="top-r">
               <div className="search">

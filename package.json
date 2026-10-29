@@ -10,9 +10,11 @@
     "preview": "vite preview",
     "check": "node scripts/check.mjs",
     "audit": "node scripts/audit-materials.mjs",
-    "verify": "npm run check && npm run audit && npm run uploads && npm run back",
+    "verify": "npm run check && npm run audit && npm run uploads && npm run back && npm run order && npm run flow",
     "uploads": "node scripts/test-uploads.mjs",
-    "back": "node scripts/test-back.mjs"
+    "back": "node scripts/test-back.mjs",
+    "order": "node scripts/test-order.mjs",
+    "flow": "node scripts/test-flow.mjs"
   },
   "dependencies": {
     "react": "18.3.1",

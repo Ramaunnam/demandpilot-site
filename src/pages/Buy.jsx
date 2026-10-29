@@ -40,7 +40,7 @@ function BuyRow({ b }) {
 }
 
 export default function Buy() {
-  const { plan, state } = useApp()
+  const { plan, state, go, act } = useApp()
   const buys = plan.buys.filter(b => !(b.kind === 'cut' && state.approvedIds[b.id]))
   const now = buys.filter(b => b.kind === 'buy' && b.urgency !== 'Watch')
   const later = buys.filter(b => b.kind === 'buy' && b.urgency === 'Watch')
@@ -59,7 +59,22 @@ export default function Buy() {
       {now.length ? <div className="dlist">{now.map(b => <BuyRow key={b.id} b={b} />)}</div> : <Empty>Nothing to approve right now.</Empty>}
       {later.length > 0 && <><h3 style={{ margin: '4px 0 0' }}>Coming up (next 3 weeks)</h3><div className="dlist">{later.map(b => <BuyRow key={b.id} b={b} />)}</div></>}
       {cuts.length > 0 && <><h3 style={{ margin: '4px 0 0' }}>Buy less — too much stock</h3><div className="dlist">{cuts.map(b => <BuyRow key={b.id} b={b} />)}</div></>}
-      {placed.length > 0 && <Card title="Orders placed this session" pad={false}>
+      {(state.activity ?? []).some(e => e.undo?.type === 'reject') && (
+        <Card title="Not ordered" sub="Turned down this session. Put one back if you change your mind." pad={false}>
+          <div className="tbl-wrap"><table className="tbl">
+            <thead><tr><th scope="col">Material</th><th scope="col">Time</th><th scope="col"></th></tr></thead>
+            <tbody>
+              {state.activity.filter(e => e.undo?.type === 'reject').map(e => (
+                <tr key={e.id}><td className="nm">{e.what}</td><td className="num">{e.at}</td>
+                  <td><button className="btn sm" onClick={() => act.undo(e)}>Put it back</button></td></tr>
+              ))}
+            </tbody>
+          </table></div>
+        </Card>
+      )}
+      {placed.length > 0 && <Card title="Orders placed this session"
+        sub="These are purchase orders — they are kept on the Material orders tab in Orders."
+        right={<button className="btn sm pri" onClick={() => go('orders', 'po')}>View in Orders</button>} pad={false}>
         <div className="tbl-wrap"><table className="tbl"><thead><tr><th scope="col">Order</th><th scope="col">Material</th><th scope="col" className="r">Amount</th><th scope="col" className="r">Cost</th><th scope="col">Arrives</th></tr></thead>
           <tbody>{placed.map(p => { const m = plan.matById[p.mat]; return <tr key={p.id}><td className="num">{p.id}{p.rush && <span className="tag" style={{ marginLeft: 4 }}>Rush</span>}</td><td>{m.name}</td><td className="r num">{fmtQty(p.qty, m.unit)}</td><td className="r num">{fmtINR(p.cost)}</td><td>{dayLabel(p.dueDay)}</td></tr> })}</tbody>
         </table></div></Card>}

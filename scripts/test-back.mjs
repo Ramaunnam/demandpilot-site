@@ -60,6 +60,7 @@ const click = async (el) => {
   await act(async () => { el.dispatchEvent(new window.MouseEvent('click', { bubbles: true })) })
   await settle()
 }
+const navTo = (l) => $$('.nav button').find(b => b.textContent.trim().startsWith(l))
 const browserBack = async () => {
   await act(async () => { window.history.back(); await new Promise(r => setTimeout(r, 20)) })
   await settle()
@@ -126,7 +127,35 @@ console.log('\n5. A filter survives leaving the page and coming back')
   back === group ? ok('the filter was restored') : bad(`filter came back as "${back}", expected "${group}"`)
 }
 
-console.log('\n6. No errors along the way')
+console.log(`\n6. Back shows only where you went into something`)
+{
+  // every screen reached from the side rail is a list: nothing to come out of
+  for (const label of ['Command Centre', 'Decisions', 'What changed', 'Forecast', 'Products', 'Materials', 'Plan', 'Buy', 'Orders', 'Connected', 'What if', 'How it works']) {
+    const n = navTo(label)
+    if (!n) continue
+    await click(n)
+    if (backBtn()) bad(`Back is showing on "${title()}", which is a list screen`)
+  }
+  ok('no Back button on any screen reached from the side rail')
+
+  // now go into things: Back must be there
+  await click(navTo('Products'))
+  await click($$('.tbl tbody tr.click')[0])
+  backBtn() ? ok(`Back is there on a product: "${title()}"`) : bad("no Back on a product page")
+  backLink() ? ok(`and above the title: "${backLink().textContent.trim()}"`) : bad("no back link above the title")
+
+  await click(navTo('Materials'))
+  await click($$('.tbl tbody tr.click')[0])
+  backBtn() ? ok(`Back is there on a material: "${title()}"`) : bad("no Back on a material page")
+
+  await click(navTo('Decisions'))
+  const seeSales = $$('.drow .acts button').find(b => b.textContent.trim() === 'See sales')
+  if (seeSales) {
+    await click(seeSales)
+    backBtn() ? ok("Back is there on a sales change opened from Decisions") : bad("no Back on an opened sales change")
+  }
+}
+console.log('\n7. No errors along the way')
 errors.length ? bad(`${errors.length} console error(s): ${errors[0].slice(0, 160)}`) : ok('no React or runtime errors')
 const body = document.body.textContent
 for (const t of ['NaN', 'Infinity', 'undefined']) {

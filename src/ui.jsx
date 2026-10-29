@@ -168,8 +168,10 @@ export function deadlineText(day) {
 
 // One decision, used on the Command Centre and the Decisions page.
 export const DecisionRow = memo(function DecisionRow({ d, compact }) {
-  const { act, go } = useApp()
+  const { act, go, plan } = useApp()
   const dl = deadlineText(d.deadlineDay)
+  // a sales change is answered here rather than on another screen
+  const change = d.action === 'decide' ? plan.changes.find(c => c.id === d.id) : null
   return (
     <div className="drow">
       <span className="bar" style={{ background: URG_COLOR[d.urgency] }} />
@@ -187,8 +189,14 @@ export const DecisionRow = memo(function DecisionRow({ d, compact }) {
         <span className={`when ${dl.late ? 'late' : ''}`}>{dl.t}</span>
         {!compact && d.money > 0 && <span className="note num">{fmtINR(d.money)} · {d.sure}% sure</span>}
         <div className="acts">
-          {d.action === 'decide'
-            ? <button className="btn sm pri" onClick={() => go(d.link.page, d.link.id)}>Decide</button>
+          {d.action === 'decide' && change
+            ? <>
+              <button className="btn sm pri" title="Plan for it: the forecast follows the new level"
+                onClick={() => act.decideChange(change, 'real')}>Plan for it</button>
+              <button className="btn sm" title="Treat it as a one-off and leave the forecast alone"
+                onClick={() => act.decideChange(change, 'oneoff')}>Ignore</button>
+              {!compact && <button className="btn sm ghost" onClick={() => go(d.link.page, d.link.id)}>See sales</button>}
+            </>
             : <button className="btn sm pri" onClick={() => act.approveDecision(d)}><Icon name="check" size={13} />{d.action === 'ack' ? 'Noted' : 'Approve'}</button>}
           {!compact && <button className="btn sm ghost" aria-label={`Dismiss: ${d.name}`} title="Dismiss" onClick={() => act.dismiss(d)}><Icon name="x" size={13} /></button>}
         </div>

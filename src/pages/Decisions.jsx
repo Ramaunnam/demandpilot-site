@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { fmtINR, sum } from '../engine.js'
-import { useApp, Head, Tile, Seg, DecisionRow, Empty, Icon, useViewState } from '../ui.jsx'
+import { fmtWhen } from '../data.js'
+import { useApp, Head, Tile, Card, Seg, DecisionRow, Empty, Icon, useViewState } from '../ui.jsx'
 
 const TYPES = ['All', 'Order', 'Make more', 'Sales change', 'Factory too busy', 'Buy less']
 
 export default function Decisions() {
-  const { plan, state, go } = useApp()
+  const { plan, state, go, act } = useApp()
   const [urg, setUrg] = useViewState('decisions.urgency', 'All')
   const [type, setType] = useViewState('decisions.type', 'All')
   const [sort, setSort] = useViewState('decisions.sort', 'deadline')
@@ -43,11 +44,31 @@ export default function Decisions() {
         : all.length ? <Empty>Nothing waiting in this view. <button className="link" onClick={() => { setUrg('All'); setType('All') }}>Show all {all.length}</button></Empty>
           : <div className="alert calm"><Icon name="check" /><span className="msg"><b>Everything is decided.</b> {state.log.length} action{state.log.length === 1 ? '' : 's'} taken this session — orders placed, production planned and sales changes answered.</span><button className="btn sm" onClick={() => go('command')}>Command Centre</button></div>}
       <p className="note">Urgent: stock runs out before new supply can arrive. · Soon: act within a week. · Watch: sales changed, decide this week. · Info: nothing at risk.</p>
-      {state.log.length > 0 && (
-        <div className="card"><div className="card-h"><h3>Done this session</h3></div><div className="card-b">
-          {state.log.map((l, i) => <div key={i} className="row" style={{ padding: '4px 0', borderTop: i ? '1px solid var(--line)' : 0 }}><span className="note num">{l.at}</span><span>{l.text}</span></div>)}
-        </div></div>
+      {(state.activity ?? []).length > 0 && (
+        <Card title="What you did" sub="Every action this session, where it ended up, and how to put it back." pad={false}>
+          <div className="tbl-wrap"><table className="tbl">
+            <thead><tr>
+              <th scope="col">Time</th><th scope="col">Action</th><th scope="col">What</th><th scope="col"></th>
+            </tr></thead>
+            <tbody>
+              {state.activity.map(e => (
+                <tr key={e.id}>
+                  <td className="num" style={{ whiteSpace: 'nowrap' }}>{e.when ? fmtWhen(e.when) : e.at}</td>
+                  <td><span className="tag">{e.kind}</span></td>
+                  <td className="nm">{e.what}</td>
+                  <td>
+                    <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                      {e.link && <button className="btn sm" onClick={() => go(e.link.page, e.link.id)}>{e.linkLabel ?? 'Open'}</button>}
+                      {e.undo && <button className="btn sm ghost" onClick={() => act.undo(e)}>Undo</button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        </Card>
       )}
+
     </>
   )
 }

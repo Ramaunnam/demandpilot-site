@@ -1,13 +1,17 @@
 import React, { useState } from 'react'
-import { HIST, AHEAD, wk, dayLabel } from '../data.js'
+import { HIST, AHEAD, wk, dayLabel, fmtWhen } from '../data.js'
 import { sum, fmtT, fmtQty, fmtINR, daysText } from '../engine.js'
 import { useApp, Head, Card, Pill, MatPill, useViewState } from '../ui.jsx'
 
 export default function Plan() {
-  const { plan, go } = useApp()
+  const { plan, go, state } = useApp()
   const [step, setStep] = useViewState('plan.step', 1)
   const totalMake = new Array(AHEAD).fill(0).map((_, w) => sum(plan.products.map(p => p.make[w])))
   const buys = plan.buys.filter(b => b.kind === 'buy')
+  // sales changes the planner accepted, and the moment each was accepted
+  const accepted = plan.changes.filter(c => c.status === 'real')
+  const changeWhen = (id) => (state.activity ?? []).find(e => e.link?.page === 'changes' && e.link?.id === id)?.when ?? null
+  const movedIds = new Set(accepted.flatMap(c => c.items.map(i => i.productId)))
   const short = plan.materials.filter(m => m.planned.length)
   const steps = [
     { n: 1, t: 'Forecast', v: fmtT(plan.kpi.next12), s: 'customers will buy, 12 weeks' },
@@ -32,6 +36,64 @@ export default function Plan() {
         </table></div></Card>}
 
       {step === 2 && <>
+        {accepted.length > 0 && (
+          <Card title="Sales changes you asked us to plan for"
+            sub="The ones you chose “Plan for it” on. The forecast was moved to the new level, so these tonnes are already inside the make plan below." pad={false}>
+            <div className="tbl-wrap"><table className="tbl">
+              <thead><tr>
+                <th scope="col">Sales change</th><th scope="col">Products</th>
+                <th scope="col" className="r">Change a week</th><th scope="col" className="r">Over 12 weeks</th>
+                <th scope="col">Asked for</th><th scope="col"></th>
+              </tr></thead>
+              <tbody>
+                {accepted.map(c => (
+                  <tr key={c.id}>
+                    <td className="nm">{c.title}<small>since {wk(c.start)}</small></td>
+                    <td className="note">{c.items.length} product{c.items.length === 1 ? '' : 's'}</td>
+                    <td className={`r num ${c.extraWk >= 0 ? 'up' : 'down'}`}>{c.extraWk > 0 ? '+' : '−'}{fmtT(Math.abs(c.extraWk))}</td>
+                    <td className={`r num ${c.extraWk >= 0 ? 'up' : 'down'}`}>{c.extraWk > 0 ? '+' : '−'}{fmtT(Math.abs(c.extraWk) * 12)}</td>
+                    <td className="num" style={{ whiteSpace: 'nowrap' }}>{changeWhen(c.id) ? fmtWhen(changeWhen(c.id)) : '—'}</td>
+                    <td><button className="btn sm ghost" onClick={() => go('changes', c.id)}>See the change</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </Card>
+        )}
+        {(state.production ?? []).length > 0 && (
+          <Card title="Extra production you asked for" sub="Raised when you approve a “Make more” decision. Newest first." pad={false}>
+            <div className="tbl-wrap"><table className="tbl">
+              <thead><tr>
+                <th scope="col">Order</th><th scope="col">Product</th><th scope="col">Line</th>
+                <th scope="col" className="r">Extra tonnes</th><th scope="col">Spread over</th>
+                <th scope="col">Approved</th><th scope="col">Status</th><th scope="col"></th>
+              </tr></thead>
+              <tbody>
+                {state.production.map(w => (
+                  <tr key={w.id}>
+                    <td className="num">{w.id}</td>
+                    <td className="nm">{w.name}</td>
+                    <td>{w.line}</td>
+                    <td className="r num">{fmtT(w.qty)}</td>
+                    <td className="note">{w.weeks} weeks</td>
+                    <td className="num" style={{ whiteSpace: 'nowrap' }}>{w.raisedAt ? fmtWhen(w.raisedAt) : w.at}</td>
+                    <td><span className="tag">{w.status}</span></td>
+                    <td>
+                      <div className="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+                        <button className="btn sm ghost" onClick={() => go('product', w.productId)}>Product</button>
+                        <button className="btn sm ghost" onClick={() => go('orders', 'wo')}>In Orders</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+            <div className="note" style={{ padding: '8px 14px' }}>
+              Each of these adds its tonnes to that product's make plan over the weeks shown, on top of
+              the forecast the line load below already allows for.
+            </div>
+          </Card>
+        )}
         <Card title="Step 2 · Make plan vs what each line can do" sub="Planned tonnes as % of line capacity, per week. Red = over capacity.">
           <div className="tbl-wrap"><table className="tbl">
             <thead><tr><th scope="col">Line</th>{plan.lines[0].weeks.map(x => <th scope="col" key={x.w} className="r">{wk(HIST + x.w)}</th>)}</tr></thead>
@@ -42,7 +104,7 @@ export default function Plan() {
         </Card>
         <Card title="How much to make, per product" sub="Make = forecast + top-up to reach target stock, spread over 6 weeks" pad={false}>
           <div className="tbl-wrap"><table className="tbl"><thead><tr><th scope="col">Product</th><th scope="col" className="r">Stock + being made</th><th scope="col" className="r">Target</th><th scope="col" className="r">Make, next 6 wks</th><th scope="col">Status</th></tr></thead>
-            <tbody>{plan.products.map(p => <tr key={p.id} className="click" onClick={() => go('product', p.id)}><td className="nm">{p.name}</td><td className="r num">{fmtT(p.position)}</td><td className="r num">{fmtT(p.target)}</td><td className="r num">{fmtT(sum(p.make.slice(0, 6)))}</td><td><Pill u={p.urgency} /></td></tr>)}</tbody>
+            <tbody>{plan.products.map(p => <tr key={p.id} className="click" onClick={() => go('product', p.id)}><td className="nm">{p.name}{movedIds.has(p.id) && <small className="up">sales change planned for</small>}</td><td className="r num">{fmtT(p.position)}</td><td className="r num">{fmtT(p.target)}</td><td className="r num">{fmtT(sum(p.make.slice(0, 6)))}</td><td><Pill u={p.urgency} /></td></tr>)}</tbody>
           </table></div></Card>
       </>}
 

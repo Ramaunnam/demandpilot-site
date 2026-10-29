@@ -6,7 +6,11 @@ export const SITE = { name: 'Integrated Steelworks', short: 'Site 1', what: 'Sta
 
 export const HIST = 104                 // weeks of sales history; index 104 = this week
 export const AHEAD = 12                 // weeks we plan ahead
-const DAY0 = Date.UTC(2026, 9, 26)      // Monday of this week (26 Oct 2026)
+// This week, from the computer's own clock: the planning calendar moves with the
+// real one, so week 0 is always the week you are actually in.
+const _now = new Date()
+const _dow = (_now.getDay() + 6) % 7                       // Monday = 0
+const DAY0 = Date.UTC(_now.getFullYear(), _now.getMonth(), _now.getDate() - _dow)
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 export const dateOf = (w) => new Date(DAY0 + (w - HIST) * 7 * 864e5)
 export const wk = (w) => { const d = dateOf(w); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}` }
@@ -17,8 +21,26 @@ export const wkRange = (w) => {
     ? `${a.getUTCDate()}–${b.getUTCDate()} ${MON[b.getUTCMonth()]}`
     : `${a.getUTCDate()} ${MON[a.getUTCMonth()]} – ${b.getUTCDate()} ${MON[b.getUTCMonth()]}`
 }
-export const dayLabel = (days) => { const d = new Date(DAY0 + 2 * 864e5 + days * 864e5); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}` }
-export const TODAY_OFFSET = 2           // today is Wednesday 28 Oct, 2 days into the week
+export const TODAY_OFFSET = _dow        // how many days into the planning week today is
+export const dayLabel = (days) => { const d = new Date(DAY0 + TODAY_OFFSET * 864e5 + days * 864e5); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]}` }
+
+// Today, and the real clock time of something the planner did. These are the live
+// dates — the ones that move on their own — as opposed to the planning weeks above.
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export const todayLabel = () => {
+  const d = new Date()
+  return `${DAYS[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`
+}
+export const fmtWhen = (ms) => {
+  const d = new Date(ms)
+  const t = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: false })
+  const today = new Date()
+  const sameDay = d.toDateString() === today.toDateString()
+  const yday = new Date(today.getTime() - 864e5).toDateString() === d.toDateString()
+  const day = sameDay ? 'Today' : yday ? 'Yesterday' : `${d.getDate()} ${MON[d.getMonth()]}`
+  return `${day}, ${t}`
+}
+export const fmtDate = (ms) => { const d = new Date(ms); return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}` }
 
 // price is per tonne of hot-rolled coil, the base every other form is priced up from.
 // trend is the yearly growth in demand; amp/phase set the shape of the year and amp2/

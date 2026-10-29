@@ -503,3 +503,45 @@ input[type="range"].slider { width: 100%; accent-color: var(--navy); height: 22p
 /* "← Back to Decisions" above a detail page's title */
 .backlink { display: inline-flex; align-items: center; gap: 5px; border: 0; background: none; padding: 0 0 2px; font-size: 12.5px; font-weight: 700; color: var(--navy); }
 .backlink:hover { text-decoration: underline; }
+
+/* --- what changed -------------------------------------------------------- */
+.chg-list { display: flex; flex-direction: column; gap: 14px; }
+.chg { border-left: 4px solid var(--watch); }
+.chg.real { border-left-color: var(--good); }
+.chg.oneoff { border-left-color: var(--line-2); }
+.chg.check { border-left-color: var(--soon); }
+.chg .card-h h3 { font-size: 15.5px; }
+.chg-why { margin: 0 0 10px; color: var(--ink-2); }
+.chg-h { font-size: 11px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+
+.chg-ask { margin-top: 12px; padding: 12px 14px; border-radius: 11px; background: var(--surface-2); border: 1px solid var(--line); }
+.chg-q { font-weight: 800; font-size: 13.5px; margin-bottom: 8px; }
+.chg-hint { margin-top: 8px; line-height: 1.5; }
+
+.chg-done { margin-top: 12px; display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; border-radius: 11px;
+  background: var(--good-soft); border: 1px solid color-mix(in srgb, var(--good) 28%, transparent); color: var(--good); }
+.chg-done.oneoff { background: var(--info-soft); border-color: var(--line-2); color: var(--ink-2); }
+.chg-done.check { background: var(--soon-soft); border-color: color-mix(in srgb, var(--soon) 28%, transparent); color: var(--soon); }
+.chg-done-t { flex: 1; min-width: 0; color: var(--ink); font-size: 13.5px; line-height: 1.5; }
+.chg-done-t b { color: inherit; }
+
+/* market signals */
+.mkt { display: flex; flex-direction: column; }
+.mkt-row { display: grid; grid-template-columns: 4px minmax(0, 1fr) auto; gap: 14px; align-items: start;
+  padding: 12px 16px 12px 0; border-bottom: 1px solid var(--line); }
+.mkt-row:last-child { border-bottom: 0; }
+.mkt-row .bar { border-radius: 0 4px 4px 0; align-self: stretch; }
+.mkt-main { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.mkt-main .t1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mkt-main .why { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+.mkt-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+
+@media (max-width: 860px) {
+  .chg-ask .row { flex-direction: column; align-items: stretch; }
+  .chg-ask .btn { width: 100%; justify-content: center; }
+  .chg-done { flex-direction: column; }
+  .chg-done .row { width: 100%; }
+  .mkt-row { grid-template-columns: 4px minmax(0, 1fr); }
+  .mkt-side { grid-column: 2; align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
+}
+.chg-only { padding: 8px 12px; border: 1px dashed var(--line-2); border-radius: 10px; margin-bottom: 12px; }
